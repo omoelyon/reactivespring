@@ -15,6 +15,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
 import java.util.List;
@@ -57,6 +58,59 @@ public class ItemHandlerTest {
                 .expectHeader().contentType(MediaType.APPLICATION_JSON) // .APPLICATION_JSON_UTF8)
                 .expectBodyList(Item.class)
                 .hasSize(5);
+    }
+
+    @Test
+    public void getOneItem(){
+        webTestClient.get().uri(ItemConstants.ITEM_FUNCTIONAL_END_POINT_V1.concat("/{id}"), "ABE")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.price", 500.90);
+    }
+    @Test
+    public void getOneItemNotFound(){
+        webTestClient.get().uri(ItemConstants.ITEM_FUNCTIONAL_END_POINT_V1.concat("/{id}"), "AB")
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    public void createItem(){
+        Item item= new Item(null, "Iphone X", 999.9);
+        webTestClient.post().uri(ItemConstants.ITEM_FUNCTIONAL_END_POINT_V1)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Mono.just(item), Item.class)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.id").isNotEmpty()
+                .jsonPath("$.description").isEqualTo("Iphone X")
+
+                .jsonPath("$.price").isEqualTo(999.9);
+    }
+
+    @Test
+    public void deleteItem(){
+        webTestClient.delete().uri(ItemConstants.ITEM_FUNCTIONAL_END_POINT_V1.concat("/{id}"), "ABE")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(Void.class);
+    }
+
+    @Test
+    public void updateItem(){
+        double newPrice = 129.87;
+        Item item = new Item("ABE", "iphone 12 test updated", 500.90);
+
+        webTestClient.put().uri(ItemConstants.ITEM_FUNCTIONAL_END_POINT_V1.concat("/{id}"), "ABE")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)
+                .body(Mono.just(item), Item.class)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.price", newPrice);
     }
 
 }

@@ -9,6 +9,7 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
+
 import static org.springframework.web.reactive.function.BodyInserters.fromValue;
 
 @Component
@@ -37,5 +38,39 @@ public class ItemsHandler {
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(fromValue(item));
         }).switchIfEmpty(notFound);
+    }
+
+    public Mono<ServerResponse> createItem(ServerRequest serverRequest) {
+        Mono<Item> itemToBeInserted = serverRequest.bodyToMono(Item.class);
+
+        return itemToBeInserted.flatMap(item ->
+                ServerResponse.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(itemReactiveRepository.save(item), Item.class)
+        );
+    }
+
+    public Mono<ServerResponse> deleteItem(ServerRequest serverRequest) {
+        String id = serverRequest.pathVariable("id");
+
+        return ServerResponse.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(itemReactiveRepository.deleteById(id), Void.class);
+    }
+
+    public Mono<ServerResponse> updateItem(ServerRequest serverRequest) {
+        String id = serverRequest.pathVariable("id");
+        Mono<Item> itemToBeInserted = itemReactiveRepository.findById(id);
+        return  itemToBeInserted.flatMap(item1 -> {
+            Item item = new Item();
+            item.setDescription(item1.getDescription());
+            item.setPrice(item1.getPrice());
+            return ServerResponse.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(itemReactiveRepository.save(item), Item.class)
+                    .switchIfEmpty(notFound);
+        });
+
+
     }
 }
